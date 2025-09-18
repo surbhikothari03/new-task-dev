@@ -1,0 +1,40 @@
+name: Deploy Docker to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Optionally build/test, then build Docker image
+      - name: Build Docker image
+        run: docker build -t my-microservice .
+
+      - name: Copy files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "."
+          target: "~/deploy"
+
+      - name: Execute Docker commands via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/deploy
+            docker build -t my-microservice .
+            docker stop my-microservice || true
+            docker rm my-microservice || true
+            docker run -d --env-file .env -p 80:3000 --name my-microservice my-microservice

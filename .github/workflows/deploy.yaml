@@ -1,4 +1,4 @@
-name: Deploy Docker App on EC2
+name: Deploy Docker App to AWS EC2
 
 on:
   push:
@@ -10,15 +10,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout code from repo
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      # (Optional) List repo files for debugging
-      - name: List files before upload
+      - name: List repo files for debug
         run: ls -la
 
-      # Securely copy files to EC2
       - name: Copy files to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -28,8 +25,7 @@ jobs:
           source: "."
           target: "/home/ubuntu/my-microservice"
 
-      # SSH into EC2 and rebuild/restart Docker app
-      - name: Deploy and restart Docker app on EC2
+      - name: Build, stop, remove, and run Docker container on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -37,7 +33,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd /home/ubuntu/my-microservice
-            ls -la                # confirm Dockerfile exists
+            ls -la
             docker build -t my-microservice .
             docker stop my-microservice || true
             docker rm my-microservice || true
